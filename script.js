@@ -88,9 +88,7 @@ renderGrid();
 btnNew.addEventListener('click', (e) => {
     e.preventDefault();
     mapData.fill(0);
-    renderGrid();
-    editor.classList.remove('hidden');
-    homeMenu.classList.add('hidden');
+    switchToEditor();
 });
 
 btnBackHome.addEventListener('click', (e) => {
@@ -161,10 +159,7 @@ btnOpen.addEventListener('click', (e) => {
                 const savedData = localStorage.getItem(key);
                 if(savedData) {
                     mapData = JSON.parse(savedData);
-                    renderGrid();
-                    editor.classList.remove('hidden');
-                    homeMenu.classList.add('hidden');
-                    mapListDiv.classList.add('hidden');
+                    switchToEditor();
                 }
             });
             savedMapsList.appendChild(li);
@@ -192,7 +187,8 @@ btnOpenFromFile.addEventListener('click', (e) => {
                 const importedData = JSON.parse(loadEvent.target.result);
 
                 mapData = importedData;
-                renderGrid();
+                switchToEditor();
+
 
                 console.log("Data loaded successfully:", importedData);
                 alert("Map loaded!");
