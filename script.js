@@ -11,16 +11,27 @@ const btnOpen = document.getElementById('openFromStorage');
 const mapListDiv = document.getElementById('mapList');
 const savedMapsList = document.getElementById('savedMapsList');
 const btnCloseMapList = document.getElementById('closeMapList');
-
 const btnSaveToFile = document.getElementById('saveToFile');
 const btnOpenFromFile = document.getElementById('openFromFile');
 
+const btnDrive = document.getElementById('drive');
 
 editor.classList.add('hidden');
 
+let driving = false;
+
+let car = null;
+let carX = 0;
+let carY = 0;
+let carRotation = 0;
+
 const WIDTH = 20;
 const HEIGHT = 20;
-let mapData = new Array(WIDTH * HEIGHT).fill(0);
+
+let mapData = Array.from({ length: WIDTH * HEIGHT }, () => ({
+    type: 0,
+    startingLine: false
+}));
 
 function switchToEditor() {
     renderGrid();
@@ -29,9 +40,16 @@ function switchToEditor() {
     mapListDiv.classList.add('hidden');
 }
 
+function resetMapData() {
+    mapData = Array.from({ length: WIDTH * HEIGHT }, () => ({
+        type: 0,
+        startingLine: false
+    }));
+}
+
 function getTileAt(x, y) {
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
-    return mapData[y * WIDTH + x];
+    return mapData[y * WIDTH + x].type;
 }
 
 function updateRoadVisuals() {
@@ -39,10 +57,15 @@ function updateRoadVisuals() {
 
     for (let i = 0; i < 400; i++) {
         const cell = cells[i];
-        const type = mapData[i];
+        const cellData = mapData[i];
+        const type = cellData.type;
 
         cell.className = 'cell';
         cell.dataset.state = type;
+
+        if (cellData.startingLine) {
+            cell.classList.add('startFinish');
+        }
 
         if (type !== 1) continue;
 
@@ -87,7 +110,7 @@ renderGrid();
 
 btnNew.addEventListener('click', (e) => {
     e.preventDefault();
-    mapData.fill(0);
+    resetMapData();
     switchToEditor();
 });
 
@@ -98,15 +121,33 @@ btnBackHome.addEventListener('click', (e) => {
 });
 
 btnClear.addEventListener('click', () => {
-    mapData.fill(0);
+    resetMapData();
     renderGrid();
 });
 
 grid.addEventListener("click", e => {
-    if (!e.target.classList.contains("cell")) return;
-    const index = Number(e.target.dataset.index);
+    e.preventDefault();
 
-    mapData[index] = (mapData[index] + 1) % 4;
+    if (!e.target.classList.contains("cell")) return;
+
+    const index = Number(e.target.dataset.index);
+    const cellData = mapData[index];
+
+    if (cellData.type === 1 && e.ctrlKey) {
+        if (!cellData.startingLine) {
+            mapData.forEach(cell => cell.startingLine = false);
+            cellData.startingLine = true;
+        }
+        else {
+            cellData.startingLine = false;
+        }
+    }
+    else {
+        cellData.type = (cellData.type + 1) % 4;
+        if(cellData.type !== 1) {
+            cellData.startingLine = false;
+        }
+    }
 
     updateRoadVisuals();
 });
@@ -119,7 +160,7 @@ btnSave.addEventListener('click', () => {
     }
 });
 
-btnSaveToFile.addEventListener('click', (e) => {
+btnSaveToFile.addEventListener('click', () => {
     const mapName = prompt("Input name for the map: ");
 
     if (mapName) {
@@ -191,7 +232,6 @@ btnOpenFromFile.addEventListener('click', (e) => {
 
 
                 console.log("Data loaded successfully:", importedData);
-                alert("Map loaded!");
             } catch (err) {
                 alert("Error parsing JSON: " + err.message);
             }
@@ -201,7 +241,81 @@ btnOpenFromFile.addEventListener('click', (e) => {
     fileInput.click();
 })
 
-
 btnCloseMapList.addEventListener('click', () => {
     mapListDiv.classList.add('hidden');
 });
+
+btnDrive.addEventListener('click', () => {
+    if (driving) {
+        driving = false;
+        btnDrive.innerHTML = 'Drive';
+        if (car) {
+            car.remove();
+            car = null;
+        }
+        switchToEditor();
+    } else {
+        const startIndex = mapData.findIndex(tile => tile.startingLine);
+
+        if (startIndex === -1) {
+            alert("No starting line found! Ctrl+Click a road to set one.");
+            return;
+        }
+        driving = true;
+        btnDrive.innerHTML = 'Stop';
+
+        carX = startIndex % WIDTH;
+        carY = Math.floor(startIndex / WIDTH);
+        carRotation = 0;
+
+        car = document.createElement('div');
+        car.classList.add('car');
+        grid.appendChild(car);
+
+        updateCarVisuals();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (!driving || !car) return;
+    let nextX = carX;
+    let nextY = carY;
+    switch(e.key) {
+        case 'ArrowUp':
+            nextY--;
+            carRotation = 0;
+            break;
+        case 'ArrowDown':
+            nextY++;
+            carRotation = 180;
+            break;
+        case 'ArrowLeft':
+            nextX--;
+            carRotation = 270;
+            break;
+        case 'ArrowRight':
+            nextX++;
+            carRotation = 90;
+            break;
+        default:
+            return;
+    }
+    e.preventDefault();
+    const nextTileType = getTileAt(nextX, nextY);
+    if (nextTileType === 1) {
+        carX = nextX;
+        carY = nextY;
+        updateCarVisuals();
+    } else {
+        console.log("Bonk! Not a road.");
+    }
+});
+
+function updateCarVisuals() {
+    if (!car) return;
+    car.style.left = (carX * 5) + '%';
+    car.style.top = (carY * 5) + '%';
+    car.style.transform = `rotate(${carRotation}deg)`;
+}
+
+
