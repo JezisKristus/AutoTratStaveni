@@ -11,12 +11,15 @@ const btnOpen = document.getElementById('openFromStorage');
 const mapListDiv = document.getElementById('mapList');
 const savedMapsList = document.getElementById('savedMapsList');
 const btnCloseMapList = document.getElementById('closeMapList');
-
 const btnSaveToFile = document.getElementById('saveToFile');
 const btnOpenFromFile = document.getElementById('openFromFile');
 
+const btnDrive = document.getElementById('drive');
 
 editor.classList.add('hidden');
+
+let driving = false;
+
 
 const WIDTH = 20;
 const HEIGHT = 20;
@@ -32,6 +35,12 @@ function switchToEditor() {
 function getTileAt(x, y) {
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
     return mapData[y * WIDTH + x];
+}
+
+function drive(){
+    if (!driving) return;
+
+
 }
 
 function updateRoadVisuals() {
@@ -103,12 +112,19 @@ btnClear.addEventListener('click', () => {
 });
 
 grid.addEventListener("click", e => {
+    e.preventDefault();
+
     if (!e.target.classList.contains("cell")) return;
+
     const index = Number(e.target.dataset.index);
 
-    mapData[index] = (mapData[index] + 1) % 4;
-
-    updateRoadVisuals();
+    if (mapData[index] === 1 && e.ctrlKey) {
+        mapData[index].startingLine = !mapData[index].startingLine;
+    }
+    else {
+        mapData[index] = (mapData[index] + 1) % 4;
+    }
+        updateRoadVisuals();
 });
 
 btnSave.addEventListener('click', () => {
@@ -191,7 +207,6 @@ btnOpenFromFile.addEventListener('click', (e) => {
 
 
                 console.log("Data loaded successfully:", importedData);
-                alert("Map loaded!");
             } catch (err) {
                 alert("Error parsing JSON: " + err.message);
             }
@@ -201,7 +216,17 @@ btnOpenFromFile.addEventListener('click', (e) => {
     fileInput.click();
 })
 
-
 btnCloseMapList.addEventListener('click', () => {
     mapListDiv.classList.add('hidden');
 });
+
+btnDrive.addEventListener('click', (e) => {
+    if(driving) {
+        driving = false;
+        btnDrive.innerHTML = 'Drive';
+    } else {
+        driving = true;
+        btnDrive.innerHTML = 'Stop';
+    }
+})
+
