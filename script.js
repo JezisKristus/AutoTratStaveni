@@ -7,16 +7,27 @@ const btnNew = document.getElementById('newMap');
 const btnBackHome = document.getElementById('backHome');
 const btnClear = document.getElementById('clear');
 const btnSave = document.getElementById('save');
-const btnOpen = document.getElementById('openFromFile');
+const btnOpen = document.getElementById('openFromStorage');
 const mapListDiv = document.getElementById('mapList');
 const savedMapsList = document.getElementById('savedMapsList');
 const btnCloseMapList = document.getElementById('closeMapList');
+
+const btnSaveToFile = document.getElementById('saveToFile');
+const btnOpenFromFile = document.getElementById('openFromFile');
+
 
 editor.classList.add('hidden');
 
 const WIDTH = 20;
 const HEIGHT = 20;
 let mapData = new Array(WIDTH * HEIGHT).fill(0);
+
+function switchToEditor() {
+    renderGrid();
+    editor.classList.remove('hidden');
+    homeMenu.classList.add('hidden');
+    mapListDiv.classList.add('hidden');
+}
 
 function getTileAt(x, y) {
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
@@ -110,6 +121,29 @@ btnSave.addEventListener('click', () => {
     }
 });
 
+btnSaveToFile.addEventListener('click', (e) => {
+    const mapName = prompt("Input name for the map: ");
+
+    if (mapName) {
+
+        const dataStr = JSON.stringify(mapData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = `${mapName}.json`;
+        document.body.appendChild(link);
+        link.click(); // vytvořim element a kliknu na něj abych to stáhnul protože saveFile() neexistuje for security reasons
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        alert("Saved");
+    }
+})
+
 btnOpen.addEventListener('click', (e) => {
     e.preventDefault();
 
@@ -139,6 +173,38 @@ btnOpen.addEventListener('click', (e) => {
 
     mapListDiv.classList.remove('hidden');
 });
+
+btnOpenFromFile.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+
+    fileInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = (loadEvent) => {
+            try {
+                const importedData = JSON.parse(loadEvent.target.result);
+
+                mapData = importedData;
+                renderGrid();
+
+                console.log("Data loaded successfully:", importedData);
+                alert("Map loaded!");
+            } catch (err) {
+                alert("Error parsing JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    fileInput.click();
+})
+
 
 btnCloseMapList.addEventListener('click', () => {
     mapListDiv.classList.add('hidden');
